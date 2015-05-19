@@ -5,7 +5,7 @@ This docker container provides a cron job which backups a volume and uploads it 
 
 The container can be executed through the following command: 
 
-	docker run -d -e GITREPO='<ssh clone url>' -v '<.shh directory>':/root/.ssh -v '<backup 		directory>':/var/lib/cron-backup-docker
+	docker run -d -e GITREPO='<ssh clone url>' -v '<.shh directory>':/root/.ssh -v '<backup directory>':/var/lib/cron-backup-docker
 
 The containers environment variable `GITREPO`  is set through:
 
