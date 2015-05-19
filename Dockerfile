@@ -4,11 +4,6 @@ MAINTAINER Georges Alkhouri <georges.alkhouri@stud.htwk-leipzig.de>
 RUN apt-get update
 RUN apt-get install -y git
 
-# Enable authentication with ssh
-
-RUN mkdir /root/.ssh/
-ADD id_rsa /root/.ssh/id_rsa
-
 # Create known_hosts
 RUN touch /root/.ssh/known_hosts
 RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
