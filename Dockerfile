@@ -4,10 +4,6 @@ MAINTAINER Georges Alkhouri <georges.alkhouri@stud.htwk-leipzig.de>
 RUN apt-get update
 RUN apt-get install -y git
 
-# Create known_hosts
-RUN touch /root/.ssh/known_hosts
-RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
-
 # Add git identity
 RUN git config --global user.email "backup@imn.htwk-leipzig.de"
 RUN git config --global user.name "Cron Backup"
@@ -27,6 +23,9 @@ RUN chmod +x /usr/bin/backup.sh
 RUN chmod +x /usr/bin/run.sh
 
 VOLUME "/var/lib/cron-backup-docker"
+
+# Needed to push to git through ssh
+VOLUME "/root/.ssh"
  
 # Run the command on container startup
 CMD /usr/bin/run.sh
