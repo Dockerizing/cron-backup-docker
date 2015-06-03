@@ -1,18 +1,21 @@
 FROM ubuntu:latest
 MAINTAINER Georges Alkhouri <georges.alkhouri@stud.htwk-leipzig.de>
 
+ENV DEBIAN_FRONTEND noninteractive
+
+ENV GIT_REPO ""
+ENV GIT_EMAIL ""
+ENV GIT_NAME ""
+ENV CRONTAB "0 0 * * *"
+ENV GIT_REPO_PATH "/var/lib/backup-repository"
+ENV BACKUP_PATH "/var/lib/cron-backup-docker"
+
 RUN apt-get update
-RUN apt-get install -y git
+RUN apt-get install -y git virtuoso-opensource bzip2 unzip raptor-utils
 
-# Add git identity
-RUN git config --global user.email "backup@imn.htwk-leipzig.de"
-RUN git config --global user.name "Cron Backup"
-
-# Add crontab file in the cron directory
-ADD crontab /etc/cron.d/backup-cron
- 
-# Give execution rights on the cron job
-RUN chmod 0644 /etc/cron.d/backup-cron
+# We need the virtuoso package to run isql-vt, 
+# but we do not need the server running
+RUN /etc/init.d/virtuoso-opensource-6.1 stop
 
 # Add backup script which the cron job is going to run
 ADD backup.sh /usr/bin/
@@ -21,8 +24,6 @@ ADD run.sh /usr/bin/
 
 RUN chmod +x /usr/bin/backup.sh
 RUN chmod +x /usr/bin/run.sh
-
-VOLUME "/var/lib/cron-backup-docker"
 
 # Needed to push to git through ssh
 VOLUME "/root/.ssh"
