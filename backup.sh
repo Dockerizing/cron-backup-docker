@@ -1,37 +1,38 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-## configuration
-VIRTUSER="dba" # virtuoso username
-VIRTPASS=$VIRTUOSO_ENV_PWDDBA # virtuoso password 
-BACKUPDIR=$BACKUP_PATH # make sure this is in DirsAllowed in virtuoso.ini 
-#DAYS=14 # files older then x days will be removed from the backup dir
+bin="isql-vt"
+host="store"
+port=1111
+user="dba"
+password=${STORE_ENV_PWDDBA}
+cmd="${bin} ${host}:${port} ${user} ${password}"
 
-## functions
-function createbackup {
-	ISQL=`which isql-vt`
-	BACKUPDATE=`date +%y%m%d-%H%M`
-  	$ISQL virtuoso $VIRTUSER $VIRTPASS <<ScriptDelimit
-		backup_context_clear();
-		checkpoint;
-		backup_online('virt_backup_$BACKUPDATE#',150,0,vector('$BACKUPDIR'));
-		exit;
-ScriptDelimit
-}
+### Needs adjustment BEGIN
 
-## program
-mkdir -p $BACKUPDIR
-createbackup
-#find $BACKUPDIR -mtime +$DAYS -print0 | xargs -0 rm 2> /dev/null
+cd $BACKUP_PATH
 
-cp -a $BACKUPDIR/. $GIT_REPO_PATH
+exec 3<&0
 
-rm -r $BACKUPDIR
+for graph_file in *.graph;
+do
+    exec 0< ${graph_file}
+    read graph
+    echo ${graph}
+    ${cmd} exec="dump_one_graph ('${graph}', '/tmp/graphdump_');"
+    cp /tmp/graphdump_000001.ttl ${graph_file%.graph}
+    echo ${graph_file%.graph}
+    ./normalize.sh ${graph_file%.graph}
+done
 
-# Push is possible if host .ssh contains 
-# proper private key and github.com is added 
-# to know_hosts 
+exec 0<&3
 
+### Needs adjustment END
+
+cd $GIT_REPO_PATH
+
+echo "commit changes ..."
+
+# maybe git add -u
 git add -A
-git commit -m "Cron backup commit."
+git commit -m "cron backup commit"
 git push origin master
-
