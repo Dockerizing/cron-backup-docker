@@ -5,34 +5,32 @@ host="store"
 port=1111
 user="dba"
 password=${STORE_ENV_PWDDBA}
-cmd="${bin} ${host}:${port} ${user} ${password}"
 
-### Needs adjustment BEGIN
+run_virtuoso_cmd () {
+  VIRT_OUTPUT=`echo "$1" | "$bin" -H "$host" -S "$port" -U "$user" -P "$password" 2>&1`
+  VIRT_RETCODE=$?
+  if [[ $VIRT_RETCODE -eq 0 ]]; then
+    echo "$VIRT_OUTPUT" | tail -n+5 | perl -pe 's|^SQL> ||g'
+    return 0
+  else
+    echo -e "[ERROR] running the these commands in virtuoso:\n$1\nerror code: $VIRT_RETCODE\noutput:"
+    echo "$VIRT_OUTPUT"
+    let 'ret = VIRT_RETCODE + 128'
+    return $ret
+  fi
+}
 
-cd $BACKUP_PATH
+echo "[CRON] Getting dump from store"
 
-exec 3<&0
+run_virtuoso_cmd "dump_nquads('$STORE_BACKUP_PATH',1,10000000,0);"
 
-for graph_file in *.graph;
-do
-    exec 0< ${graph_file}
-    read graph
-    echo ${graph}
-    ${cmd} exec="dump_one_graph ('${graph}', '/tmp/graphdump_');"
-    cp /tmp/graphdump_000001.ttl ${graph_file%.graph}
-    echo ${graph_file%.graph}
-    ./normalize.sh ${graph_file%.graph}
-done
+cp -a ${STORE_BACKUP_PATH}/. ${GIT_REPO_PATH}/
 
-exec 0<&3
-
-### Needs adjustment END
-
-cd $GIT_REPO_PATH
-
-echo "commit changes ..."
+echo "[CRON] Committing changes to git repository"
 
 # maybe git add -u
-git add -A
-git commit -m "cron backup commit"
-git push origin master
+git -C $GIT_REPO_PATH add -A
+git -C $GIT_REPO_PATH commit -m "cron backup commit"
+git -C $GIT_REPO_PATH push origin master
+
+echo "[CRON] Backup down"
